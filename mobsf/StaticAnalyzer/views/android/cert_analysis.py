@@ -17,6 +17,7 @@ from oscrypto import asymmetric
 from django.utils.html import escape
 
 logger = logging.getLogger(__name__)
+logging.getLogger('androguard').setLevel(logging.ERROR)
 
 
 def get_hardcoded_cert_keystore(files):
@@ -116,40 +117,50 @@ def cert_info(app_dir, app_file):
         findings = []
         if a.is_signed():
             findings.append((
-                'good',
+                'info',
                 'Application is signed with a code '
-                'signing certificate'))
+                'signing certificate',
+                'Signed Application'))
         else:
             findings.append((
-                'bad',
-                'Code signing certificate not found'))
+                'high',
+                'Code signing certificate not found',
+                'Missing Code Signing certificate'))
         if a.is_signed_v1():
-            status = 'bad'
+            status = 'high'
             if a.is_signed_v2() or a.is_signed_v3():
                 status = 'warning'
             findings.append((
                 status,
                 'Application is signed with v1 signature scheme, '
                 'making it vulnerable to Janus vulnerability on '
-                'Android <7.0'))
+                'Android 5.0-8.0, if signed only with v1 signature'
+                ' scheme. Applications running on Android 5.0-7.0'
+                ' signed with v1, and v2/v3 '
+                'scheme is also vulnerable.',
+                'Application vulnerable to Janus Vulnerability'))
         if re.findall(r'CN=Android Debug', cert_info):
             findings.append((
-                'bad',
+                'high',
                 'Application signed with a debug certificate. '
                 'Production application must not be shipped '
-                'with a debug certificate.'))
+                'with a debug certificate.',
+                'Application signed with debug certificate'))
         if re.findall(r'Hash Algorithm: sha1', cert_info):
-            status = 'bad'
+            status = 'high'
             desc = (
                 'Application is signed with SHA1withRSA. '
                 'SHA1 hash algorithm is known to have '
                 'collision issues.')
+            title = 'Certificate algorithm vulnerable to hash collision'
             if sha256_digest:
                 status = 'warning'
                 desc += (
                     ' The manifest file indicates SHA256withRSA'
                     ' is in use.')
-            findings.append((status, desc))
+            title = ('Certificate algorithm might be '
+                     'vulnerable to hash collision')
+            findings.append((status, desc, title))
         cert_dic = {
             'certificate_info': cert_info,
             'certificate_findings': findings,

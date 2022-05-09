@@ -278,7 +278,11 @@ LOGGING = {
         },
     },
 }
-# ===================
+JADX_TIMEOUT = int(os.getenv('JADX_TIMEOUT', 1800))
+# ===========================
+# ENTERPRISE FEATURE REQUESTS
+# ===========================
+EFR_01 = os.getenv('EFR_01', '0')
 # USER CONFIGURATION
 # ===================
 if CONFIG_HOME:
@@ -313,7 +317,8 @@ else:
         'com/instabug', 'com/crashlytics/android',
         'kotlinx/', 'kotlin/',
     }
-
+    # Disable CVSSV2 Score by default
+    CVSS_SCORE_ENABLED = False
     # ==============================================
 
     # ======WINDOWS STATIC ANALYSIS SETTINGS ===========
@@ -366,6 +371,7 @@ else:
     # =======ANDROID DYNAMIC ANALYSIS SETTINGS===========
     ANALYZER_IDENTIFIER = ''
     FRIDA_TIMEOUT = 4
+    ACTIVITY_TESTER_SLEEP = 4
     # ==============================================
 
     # ================HTTPS PROXY ===============

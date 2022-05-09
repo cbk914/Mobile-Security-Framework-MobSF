@@ -80,7 +80,7 @@ def view_report(request, checksum, api=False):
         analysis_result = run_analysis(app_dir, checksum, package)
         domains = analysis_result['domains']
         trk = Trackers.Trackers(app_dir, tools_dir)
-        trackers = trk.get_runtime_trackers(domains, deps)
+        trackers = trk.get_trackers_domains_or_deps(domains, deps)
         generate_download(app_dir, checksum, download_dir, package)
         images = get_screenshots(checksum, download_dir)
         context = {'hash': checksum,
@@ -100,7 +100,7 @@ def view_report(request, checksum, api=False):
                    'base64_strings': b64_strings,
                    'trackers': trackers,
                    'frida_logs': is_file_exists(fd_log),
-                   'runtime_dependencies': deps,
+                   'runtime_dependencies': list(deps),
                    'package': package,
                    'version': settings.MOBSF_VER,
                    'title': 'Dynamic Analysis'}
