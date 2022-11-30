@@ -149,7 +149,7 @@ DATABASES = {
 # End Postgres support
 """
 # ===============================================
-
+DEFAULT_AUTO_FIELD = 'django.db.models.AutoField'
 DEBUG = True
 DJANGO_LOG_LEVEL = DEBUG
 ALLOWED_HOSTS = ['127.0.0.1', 'mobsf', '*']
@@ -341,6 +341,8 @@ else:
     # Android 3P Tools
     JADX_BINARY = ''
     BACKSMALI_BINARY = ''
+    VD2SVG_BINARY = ''
+    BATIK_BINARY = ''
     APKTOOL_BINARY = ''
     ADB_BINARY = ''
 

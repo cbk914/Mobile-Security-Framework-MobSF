@@ -19,9 +19,11 @@ from django.shortcuts import render
 from django.template.defaulttags import register
 
 from mobsf.MobSF.utils import (
+    android_component,
     file_size,
     is_dir_exists,
     is_file_exists,
+    key,
     print_n_send_error_response,
 )
 from mobsf.StaticAnalyzer.models import (
@@ -45,7 +47,7 @@ from mobsf.StaticAnalyzer.views.android.db_interaction import (
 )
 from mobsf.StaticAnalyzer.views.android.icon_analysis import (
     find_icon_path_zip,
-    get_icon,
+    get_icon_apk,
 )
 from mobsf.StaticAnalyzer.views.android.manifest_analysis import (
     get_manifest,
@@ -74,12 +76,8 @@ from androguard.core.bytecodes import apk
 
 logger = logging.getLogger(__name__)
 logging.getLogger('androguard').setLevel(logging.ERROR)
-
-
-@register.filter
-def key(data, key_name):
-    """Return the data for a key_name."""
-    return data.get(key_name)
+register.filter('key', key)
+register.filter('android_component', android_component)
 
 
 def static_analyzer(request, api=False):
@@ -108,6 +106,7 @@ def static_analyzer(request, api=False):
             app_dic['dir'] = Path(settings.BASE_DIR)  # BASE DIR
             app_dic['app_name'] = filename  # APP ORIGINAL NAME
             app_dic['md5'] = checksum  # MD5
+            logger.info('Scan Hash: %s', checksum)
             # APP DIRECTORY
             app_dic['app_dir'] = Path(settings.UPLD_DIR) / checksum
             app_dic['tools_dir'] = app_dic['dir'] / 'StaticAnalyzer' / 'tools'
@@ -179,21 +178,8 @@ def static_analyzer(request, api=False):
                     )
 
                     # Get icon
-                    res_path = os.path.join(app_dic['app_dir'], 'res')
-                    app_dic['icon_hidden'] = True
-                    # Even if the icon is hidden, try to guess it by the
-                    # default paths
-                    app_dic['icon_found'] = False
-                    app_dic['icon_path'] = ''
-                    # TODO: Check for possible different names for resource
-                    # folder?
-                    if os.path.exists(res_path):
-                        icon_dic = get_icon(
-                            app_dic['app_path'], res_path)
-                        if icon_dic:
-                            app_dic['icon_hidden'] = icon_dic['hidden']
-                            app_dic['icon_found'] = bool(icon_dic['path'])
-                            app_dic['icon_path'] = icon_dic['path']
+                    # apktool should run before this
+                    get_icon_apk(app_dic)
 
                     # Set Manifest link
                     app_dic['mani'] = ('../manifest_view/?md5='
@@ -255,8 +241,6 @@ def static_analyzer(request, api=False):
                         'Performing Malware Check on extracted Domains')
                     code_an_dic['domains'] = MalwareDomainCheck().scan(
                         list(set(code_an_dic['urls_list'])))
-                    # Copy App icon
-                    copy_icon(app_dic['md5'], app_dic['icon_path'])
                     app_dic['zipped'] = 'apk'
 
                     logger.info('Connecting to Database')
@@ -604,19 +588,6 @@ def move_to_parent(inside, app_dir):
         full_path = os.path.join(inside, x)
         shutil.move(full_path, app_dir)
     shutil.rmtree(inside)
-
-
-def copy_icon(md5, icon_path=''):
-    """Copy app icon."""
-    try:
-        # Icon
-        icon_path = icon_path.encode('utf-8')
-        if icon_path:
-            if os.path.exists(icon_path):
-                shutil.copy2(icon_path, os.path.join(
-                    settings.DWD_DIR, md5 + '-icon.png'))
-    except Exception:
-        logger.exception('Generating Downloads')
 
 
 def get_app_name(app_path, app_dir, tools_dir, is_apk):
